@@ -1,0 +1,126 @@
+;; TELU-OTF.flt -- Font Layout Table for Telugu OpenType fonts
+;; Copyright (C) 2004, 2007, 2008  AIST (H15PRO112)
+;; See the end for copying conditions.
+
+(font layouter telu-otf nil
+      (font (nil nil unicode-bmp :otf=telu=blwf)))
+
+;;; <li> TELU-OTF.flt
+;;;
+;;; For Telugu OpenType fonts to draw the Telugu script.
+
+(category
+ ;; C: consonant
+ ;; H: HALANT
+ ;; u: vowel sign (above)
+ ;; p: vowel sign (post)
+ ;; b: vowel sign (below)
+ ;; a: vowel modifier (post)
+ ;; V: independent vowel
+ ;; N: ZWNJ (ZERO WIDTH NON-JOINER)
+ ;; J: ZWJ (ZERO WIDTH JOINER)
+ ;; X: generic
+ (0x0C00 0x0C7F	?E)			; generic
+ (0x0C01 0x0C03	?a)			; SIGN CANDRABINDU .. VISARGA
+ (0x0C05 0x0C14	?V)			; LETTER A .. AU
+ (0x0C15 0x0C39 ?C)			; LETTER KA .. HA
+ (0x0C3E 0x0C40	?u)			; VOWEL SIGN AA .. II
+ (0x0C41 0x0C44	?p)			; VOWEL SIGN U .. VOCALIC RR
+ (0x0C46 0x0C47	?u)			; VOWEL SIGN E .. EE
+ (0x0C4A 0x0C4C	?u)			; VOWEL SIGN O .. AU
+ (0x0C4D	?H)			; SIGN VIRAMA
+ (0x0C55	?u)			; LENGTH MARK
+ (0x0C56	?b)			; AI LENGTH MARK
+ (0x0C58 0x0C59 ?C)			; LETTER TSA .. DZA
+ (0x0C60 0x0C61	?V)			; LETTER VOCALIC RR .. VOCALIC LL
+ (0x0C62 0x0C63 ?b)			; VOWEL SIGN VOCALIC L .. LL
+ (0x0964 0x0965	?X)			; DANDA .. DOUBLE DANDA
+ (0x200C	?N)			; ZWNJ
+ (0x200D	?J)			; ZWJ
+ )
+
+;; Decompose two-part vowels.
+(generator
+ (0
+  (cond
+   ((0x0C48)
+    0x0C46 0x0C56)
+   ("." =))
+  *))
+
+;; Syllable identification and reordering.  The base consonant is
+;; always the first one, because all Telugu consonants have a below
+;; form.
+(generator
+ (0
+  (cond
+   ;; A syllable with a vowel sign.
+   ;;1  23     4      5
+   ("(C)((HC)*)(ub?|p)(a)?"
+    < | (1 =) (2 move-h) (4 = *) (5 =) | >)
+
+   ;; A syllable with a vowel modifier.
+   ;;1  23     4
+   ("(C)((HC)*)(a)"
+    < | (1 =) (2 move-h) (4 =) | >)
+
+   ;; No vowel signs, no vowel modifiers.  If the syllable ends with a
+   ;; Halant, cancel the Halant movement.
+   ;;1  23     4
+   ("(C)((HC)*)(HN?)?"
+    < | (1 =) (4 0x0C4D) (2 move-h) | >)
+
+   ;; A syllable starting with an independent vowel.
+   ("Va?"
+    < | = * | >)
+
+   ("." =))
+  *)
+
+ (move-h
+  (cond
+   ("(H)(.+)"
+    (2 = *) (1 =)))))
+
+;; Apply OTF features.  In case of Telugu, 'akhn' is applied after
+;; reordering.
+(generator
+ (0
+  (cond
+   ;; A syllable that ends with a Halant.
+   (" (CH)([^ ]*) "
+    (1 otf:telu=haln+) (2 otf:telu=akhn,blwf,abvs,blws,psts+abvm,blwm,dist))
+
+   ;; Ordinary syllables.
+   (" ([^ ]+) "
+    (1 otf:telu=akhn,blwf,abvs,blws,psts+absm,blwm,dist))
+
+   ("."
+    [ = ]))
+  *))
+
+;; Copyright (C) 2004, 2007, 2008
+;;   National Institute of Advanced Industrial Science and Technology (AIST)
+;;   Registration Number H15PRO112
+
+;; This file is part of the m17n database; a sub-part of the m17n
+;; library.
+
+;; The m17n library is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU Lesser General Public License
+;; as published by the Free Software Foundation; either version 2.1 of
+;; the License, or (at your option) any later version.
+
+;; The m17n library is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; Lesser General Public License for more details.
+
+;; You should have received a copy of the GNU Lesser General Public
+;; License along with the m17n library; if not, write to the Free
+;; Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;; Local Variables:
+;; mode: emacs-lisp
+;; End:

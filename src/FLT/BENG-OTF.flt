@@ -1,0 +1,212 @@
+;; BENG-OTF.flt -- Font Layout Table for Bengali OpenType font
+;; Copyright (C) 2004, 2007  AIST (H15PRO112)
+;; See the end for copying conditions.
+
+(font layouter beng-otf nil
+      (font (nil nil unicode-bmp :otf=beng=rphf)))
+
+;;; <li> BENG-OTF.flt
+;;;
+;;; For Bengali OpenType fonts to draw the Bengali script.  
+
+(category
+ ;; X: generic
+ ;; V: independent vowel
+ ;; C: consonant (except for R, B and Y)
+ ;; R: consonant RA
+ ;; B: consonant BA
+ ;; Y: consonant YA
+ ;; T: KHANDA TA
+ ;; n: NUKTA
+ ;; H: HALANT
+ ;; m: vowel sign (pre)
+ ;; b: vowel sign (below)
+ ;; p: vowel sign (post)
+ ;; A: vowel modifier (above)
+ ;; a: vowel modifier (post)
+ ;; Z: internal use
+ ;; N: ZWNJ (ZERO WIDTH NON-JOINER)
+ ;; J: ZWJ (ZERO WIDTH JOINER)
+ (0x0980 0x09FF	?X)			; generic
+ (0x0980	?Z)			; internal use
+ (0x0981	?A)			; SIGN CANDRABINDU
+ (0x0982 0x0983	?a)			; SIGN ANUSVARA .. VISARGA
+ (0x0985 0x0994	?V)			; LETTER A .. AU
+ (0x0995 0x09B9	?C)			; LETTER KA .. HA
+ (0x09AC	?B)			; LETTER BA
+ (0x09AF	?Y)			; LETTER YA
+ (0x09B0	?R)			; LETTER RA
+ (0x09BC	?n)			; SIGN NUKTA
+ (0x09BE	?p)			; VOWEL SIGN AA
+ (0x09BF	?m)			; VOWEL SIGN I
+ (0x09C0	?p)			; VOWEL SIGN II
+ (0x09C1 0x09C4	?b)			; VOWEL SIGN U .. RR
+ (0x09C7 0x09C8	?m)			; VOWEL SIGN E .. AI
+ (0x09CD	?H)			; SIGN VIRAMA
+ (0x09CE	?T)			; LETTER KHANDA TA
+ (0x09D7	?p)			; AU LENGTH MARK
+ (0x09DC 0x09DF	?C)			; LETTER RRA .. YYA
+ (0x09E0 0x09E1	?V)			; LETTER VOCALIC RR, LL
+ (0x09E2 0x09E3	?b)			; VOWEL SIGN L .. LL
+ (0x09F0 0x09F1	?C)			; LETTER RR WITH MIDDLE/LOWER DIAGONAL
+ (0x0964 0x0965	?X)			; DANDA .. DOUBLE DANDA
+ (0x200C	?N)			; ZWNJ
+ (0x200D	?J)			; ZWJ
+ )
+
+;; Preprocessing
+(generator
+ (0
+  (cond
+   ;; Decompose two-part vowel signs.
+   ((0x09CB)
+    0x09C7 0x09BE)
+   ((0x09CC)
+    0x09C7 0x09D7)
+   ;; TA + HALANT + ZWJ -> KHANDA-TA
+   ((0x09A4 0x09CD 0x200D)
+    0x09CE)
+   ;; consonant + NUKTA
+   ((0x09A1 0x09BC)
+    0x09DC)
+   ((0x09A2 0x09BC)
+    0x09DD)
+   ((0x09AF 0x09BC)
+    0x09DF)
+   ("." =))
+  *))
+
+;; Syllable identification and reordering.
+(generator
+ (0
+  (cond
+   ;; Khanda-Ta
+   ("(RH)?(T)"
+    < | (2 =) (1 otf:beng=rphf+) | >)
+
+   ;; A syllable with a pre-base vowel sign.
+   ;;1    2        3      4       5       6  7   8   9
+   ("(RH)?([CRBY]n?(HCn?)*(H[RB])?(J?HY)?)(m)(p)?(A)?(a)?"
+    < | (6 =) (2 pre-below) (1 otf:beng=rphf+) (8 =) (2 post) (7 =) (9 =) | >)
+
+   ;; A syllable with a non-pre-base vowel sign.
+   ;;1    2        3      4       5       6     78   9   10  11
+   ("(RH)?([CRBY]n?(HCn?)*(H[RB])?(J?HY)?)(N)?J?((b)|(p))(A)?(a)?"
+    < | (6 =) (2 pre-below) (8 =) (1 otf:beng=rphf+) (10 =)
+    (2 post) (9 =) (11 =) | >)
+
+   ;; A syllable with a vowel modifier and no vowel signs.
+   ;;1    2        3      4       5       67   8
+   ("(RH)?([CRBY]n?(HCn?)*(H[RB])?(J?HY)?)((A)|(a))"
+    < | (2 pre-below) (1 otf:beng=rphf+) (7 =) (2 post) (8 =) | >)
+
+   ;; A syllable ending with a halant.
+   ;;1    2        3      4       5       6
+   ("(RH)?([CRBY]n?(HCn?)*(H[RB])?(J?HY)?)(HN?)?"
+    < | (2 pre-below) (6 =) (1 otf:beng=rphf+) (2 post) | >)
+
+   ;; A syllable starting with an independent vowel.
+   ;;1  2  3  4  5    6
+   ("(V)(J?(H)(Y)(p))?(A?a?)"
+    < | (1 =) 0x0980 (4 =) (3 =) (5 =) (6 = *) | >)
+
+   ("." =))
+  *)
+
+ ;; Move a halant after the base consonant to the end.
+ ;; Put a special mark after the final belew-base consonant.
+ ;; Remove post-base parts.
+ (pre-below
+  (cond
+   ("(.+)(H)([RB])(J?HY)?$"
+    (1 = *) (3 =) (2 =) 0x0980)
+   ("([^J]+)J?HY$"
+    (1 = *) 0x0980)
+   (".+"
+    = * 0x0980)))
+
+ ;; Extract post-base parts and add a halant at the end.
+ ;; Produce nothing if there are no post-base parts.
+ (post
+  (cond
+   (".*(H)(Y)$"
+    (2 =) (1 =)))))
+
+;; Apply 'nukt' and 'akhn'.
+(generator
+ (0
+  (cond
+   (" ([^Z]+)(Z[^ ]*) "
+    | (1 otf:beng=nukt,akhn+) (2 = *) |)
+   ("." =))
+  *))
+
+;; Apply 'blwf' and 'pstf' to the concerning parts.
+(generator
+ (0
+  (cond
+   (" (N?m?.)([^Z]*)(Z)([^ ]*) "
+    | (1 = *) (2 otf:beng=blwf+) (3 =) (4 otf:beng=pstf+) |)
+   ("." =))
+  *))
+
+;; Get pre-base and below-base conjuncts.
+(generator
+ (0
+  (cond
+   (" (N?m?)([^Z]+)(Z)([^ ]*) "
+    | (1 = *) (2 otf:beng=half,vatu,pres,blws+) (3 =) (4 = *) |)
+   ("." =))
+  *))
+
+;; When the number of glyphs between a pre-base vowel sign and the
+;; post-below mark is more than one, move the pre-base vowel sign
+;; before the final glyph.
+(generator
+ (0
+  (cond
+   (" (N)?(m)([^Z]+)([^Z])Z([^ ]*) "
+    | (1 =) (3 = *) (2 =) (4 =) (5 = *) |)
+   (" ([^Z]+)Z([^ ]*) "
+    | (1 = *) (2 = *) |)
+   ("." =))
+  *))
+
+;; Get matra conjuncts.
+;; Do not apply 'blws' to syllables that begins with ZWNJ.
+(generator
+ (0
+  (cond
+   (" N([^ ]+) "
+    (1 otf:beng=init,pres,abvs,psts,haln+abvm,blwm,dist))
+   (" ([^ ]+) "
+    (1 otf:beng=init,pres,abvs,blws,psts,haln+abvm,blwm,dist))
+   ("."
+    [ = ]))
+  *))
+
+;; Copyright (C) 2004, 2007
+;;   National Institute of Advanced Industrial Science and Technology (AIST)
+;;   Registration Number H15PRO112
+
+;; This file is part of the m17n database; a sub-part of the m17n
+;; library.
+
+;; The m17n library is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU Lesser General Public License
+;; as published by the Free Software Foundation; either version 2.1 of
+;; the License, or (at your option) any later version.
+
+;; The m17n library is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; Lesser General Public License for more details.
+
+;; You should have received a copy of the GNU Lesser General Public
+;; License along with the m17n library; if not, write to the Free
+;; Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;; Local Variables:
+;; mode: emacs-lisp
+;; End:
