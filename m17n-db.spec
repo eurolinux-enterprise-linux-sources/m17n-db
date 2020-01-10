@@ -1,7 +1,7 @@
 Name:       m17n-db
 Summary:    Multilingualization datafiles for m17n-lib
 Version:    1.6.4
-Release:    2.1%{?dist}
+Release:    3%{?dist}
 Group:      System Environment/Libraries
 License:    LGPLv2+
 URL:        http://www.nongnu.org/m17n
@@ -189,6 +189,9 @@ rm $RPM_BUILD_ROOT%{_datadir}/m17n/ispell.mim
 %{_datadir}/pkgconfig/m17n-db.pc
 
 %changelog
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1.6.4-3
+- Mass rebuild 2013-12-27
+
 * Fri Jul 12 2013 Parag Nemade <pnemade AT redhat DOT com> - 1.6.4-2.1
 - Resolves:rh#976805: Bring back Obsoletes for upgrade from rhel6
 
