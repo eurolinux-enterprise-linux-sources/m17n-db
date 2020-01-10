@@ -1,11 +1,13 @@
 Name:       m17n-db
 Summary:    Multilingualization datafiles for m17n-lib
 Version:    1.6.4
-Release:    3%{?dist}
+Release:    4%{?dist}
 Group:      System Environment/Libraries
 License:    LGPLv2+
 URL:        http://www.nongnu.org/m17n
 Source0:    http://download-mirror.savannah.gnu.org/releases/m17n/%{name}-%{version}.tar.gz
+Source1:    http://git.savannah.gnu.org/cgit/m17n/m17n-db.git/plain/MIM/latn1-pre.mim
+
 BuildArch:  noarch
 BuildRequires: gettext
 
@@ -150,6 +152,9 @@ make %{?_smp_mflags}
 %install
 make install DESTDIR=$RPM_BUILD_ROOT INSTALL="install -p"
 
+# As requested in bug https://bugzilla.redhat.com/show_bug.cgi?id=1058510
+install -p %{SOURCE1} $RPM_BUILD_ROOT%{_datadir}/m17n/
+
 # don't ship unijoy map for now
 rm $RPM_BUILD_ROOT%{_datadir}/m17n/{bn-unijoy.mim,icons/bn-unijoy.png}
 
@@ -189,6 +194,9 @@ rm $RPM_BUILD_ROOT%{_datadir}/m17n/ispell.mim
 %{_datadir}/pkgconfig/m17n-db.pc
 
 %changelog
+* Mon Jan 09 2017 Parag Nemade <pnemade AT redhat DOT com> - 1.6.4-4
+- Resolves:rh#1058510 - Add Dutch keyboard layout
+
 * Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1.6.4-3
 - Mass rebuild 2013-12-27
 
